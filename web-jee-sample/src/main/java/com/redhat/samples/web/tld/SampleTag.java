@@ -8,11 +8,9 @@ import javax.servlet.jsp.tagext.TagSupport;
 
 public class SampleTag extends TagSupport {
 
-    public SampleTag() {
-        // TODO Auto-generated constructor stub
-    }
+	private static final long serialVersionUID = 8384968788954608561L;
 
-    @Override
+	@Override
     public int doStartTag() throws JspException {
 
         try {
