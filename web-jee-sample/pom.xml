@@ -30,6 +30,8 @@
     </dependencies>
 
     <build>
+    	<finalName>web-jee-sample</finalName>
+    	
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
