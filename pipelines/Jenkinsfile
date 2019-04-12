@@ -1,0 +1,101 @@
+pipeline {
+  agent {
+    node {
+      label 'maven'
+    }
+  }
+  stages {
+    stage('preamble') {
+      steps {
+        script {
+          openshift.withCluster() {
+            openshift.withProject() {
+              echo "Using project: ${openshift.project()}"
+            }
+          }
+        }
+      }
+    } 
+    stage('Test Code') {
+      steps {
+        script {
+          try { 
+            //git url: "https://github.com/rmarting/ocp-apps.git", branch: "master"
+            //sh "cd web-jee-sample; mvn clean test"
+          } catch (err) {
+            echo "Error ${err}"
+            currentBuild.result = 'FAILURE'
+            throw err
+          }
+        }
+      }
+    }
+    stage('Build Image') {
+      steps {
+        script {
+          openshift.withCluster() {
+            openshift.withProject() {
+              def buildSelector =  openshift.startBuild("${APPLICATION_NAME}")
+              buildSelector.logs('-f')
+            }
+          }
+        }
+      }
+    }
+    stage('Tag Image Dev') {
+      steps {
+        script {
+          openshift.withCluster() {
+            openshift.withProject() {
+              openshift.tag("sample-app:latest", "${APPLICATION_NAME}:dev") 
+            }
+          }
+        }
+      }
+    }
+    stage('Deploy Dev') {
+      steps {
+        script {
+          openshift.withCluster() {
+            openshift.withProject() {
+              def dc = openshift.selector('dc', '${APPLICATION_NAME}')
+              //dc.rollout().latest()
+              //dc.rollout().status()
+            }
+          }
+        }
+      }
+    }
+    stage('Promote to Pre?') {
+      steps {
+        timeout(time: 2, unit: "HOURS") {
+          input message: "Approve Deploy?", ok: "Yes"
+        }
+      }
+    }
+    stage('Tag Image Pre') {
+      steps {        
+        script {
+          openshift.withCluster() {
+            openshift.withProject() {
+              openshift.tag("${APPLICATION_NAME}:dev", "${APPLICATION_NAME}:pre")
+            }
+          }
+        }
+      }
+    }
+    stage('Deploy Pre') {
+      steps {
+        script {
+          openshift.withCluster() {
+            openshift.withProject() {
+              def dc = openshift.selector('dc', '${APPLICATION_NAME}-pre')
+              //dc.rollout().latest()
+              //dc.rollout().status()
+            }
+          }
+        }
+      }
+    }    
+  }
+}
